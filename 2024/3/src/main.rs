@@ -35,7 +35,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut do_state_machine = DoStateMachine::new();
     let mut dont_state_machine = DontStateMachine::new();
 
-    let mut enabled = true; // Added boolean variable enabled
+    let mut enabled = true;
 
     for c in message.chars() {
         if enabled {
