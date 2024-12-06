@@ -17,8 +17,6 @@ fn load_file_into_board(file_path: &str) -> Board {
 
     Board::new(grid)
 }
-use std::sync::mpsc;
-use std::thread;
 
 fn part_one(board: &mut Board) {
     let mut visited = std::collections::HashSet::new();
