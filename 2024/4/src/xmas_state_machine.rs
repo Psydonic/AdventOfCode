@@ -1,7 +1,7 @@
 pub struct XmasStateMachine {
     pub state: XmasState,
 }
-
+#[derive(PartialEq, Debug)]
 pub enum XmasState {
     Start,
     X,
@@ -14,8 +14,10 @@ impl XmasStateMachine {
     pub fn new() -> XmasStateMachine {
         XmasStateMachine { state: XmasState::Start }
     }
-
-    pub fn transform(&mut self, c: char) {
+    
+    // return true if the state is not in the statrt state
+    // this indicated  a valid match is pendinng
+    pub fn transform(&mut self, c: char) -> bool {
         match self.state {
             XmasState::Start => {
                 if c == 'x' || c == 'X' {
@@ -46,9 +48,12 @@ impl XmasStateMachine {
             XmasState::XMAS => {
                 if c == 'x' || c == 'X' {
                     self.state = XmasState::X;
+                } else {
+                    self.state = XmasState::Start;
                 }
             }
         }
+        return self.state != XmasState::Start;
     }
 }
 
