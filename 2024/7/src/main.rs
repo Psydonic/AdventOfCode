@@ -22,7 +22,7 @@ fn parse_file(filename: &str) -> Vec<Calibration> {
 #[derive(Debug)]
 struct Calibration {
     target: u64,
-    numbers: Vec<u64>,
+    numbers: Vec<u32>,
 }
 
 impl Calibration {
@@ -30,9 +30,9 @@ impl Calibration {
         return self.calculate_results(&self.numbers).contains(&self.target);
     }
 
-    fn calculate_results(&self, numbers: &Vec<u64> ) -> Vec<u64> {
+    fn calculate_results(&self, numbers: &Vec<u32> ) -> Vec<u64> {
         if numbers.len() == 1 {
-            return numbers.to_vec();
+            return numbers.to_vec().iter().map(|&x| x as u64).collect();
         }
 
         let (initial, _last) = numbers.split_at(numbers.len() - 1);
@@ -40,8 +40,8 @@ impl Calibration {
 
         let sub_results = self.calculate_results(&initial.to_vec());
 
-        let add: Vec<u64> = sub_results.iter().map(|number| number + last).collect();
-        let mult: Vec<u64> = sub_results.iter().map(|number| number * last).collect();
+        let add: Vec<u64> = sub_results.iter().map(|number| (*number as u64) + (*last as u64)).collect();
+        let mult: Vec<u64> = sub_results.iter().map(|number| (*number as u64) * (*last as u64)).collect();
         let concat: Vec<u64> = sub_results.iter().map(|number| format!("{}{}", number, last).parse().expect("")).collect();
 
         return vec![add, mult, concat].concat();
