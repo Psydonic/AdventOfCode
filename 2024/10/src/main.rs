@@ -17,17 +17,18 @@ fn parse_file(filename: &str) -> Vec<Vec<u32>> {
 }
 
 struct Trailhead {
-    trails: Vec<Trail>
+    start: Point,
+    paths: u32
 }
 
 impl Trailhead {
     fn new(x: u16, y:  u16, grid: &Vec<Vec<u32>>) -> Self {
         let p = Point{x, y};
 
-        // find all trails to a 9
+        // find all trails from point to a 9 in the grid
         let trails:Vec<Trail> = find_trails(&p, 9, grid);
 
-        Self{trails: trails}
+        Self{start: p, trails: trails}
     }
 
 }
@@ -54,17 +55,15 @@ fn find_trails(p: &Point, height: u8,  grid: &Vec<Vec<u32>>) -> Vec<Trail> {
         let sub_trails = find_trails(p, height - 1, grid);
 
         // for each sub trails, see if there is any valid trails ahead
-        sub_trails
-            .iter()
-            .map(|trail| )
-        return sub_trails;
+        return step(trails, grid);
     }
 }
 
+// given a set of trails, advance them, removinf if failed
 fn step(trails: Vec<Trail>, grid: &Vec<Vec<u32>>) -> Vec<Trail> {
     for trail in trails {
-        let last = trail.path.last().;
-        let height = trail.path.len();
+        let last = trail.path.last().expect("invalid starter trailhead");
+        let height: u32 = trail.path.len().try_into().unwrap();
 
         // find the surrounding points with height
         let surrounding = vec![
@@ -72,6 +71,11 @@ fn step(trails: Vec<Trail>, grid: &Vec<Vec<u32>>) -> Vec<Trail> {
             last.left(), 
             last.below(grid.len() as u16), 
             last.right(grid.get(0).unwrap().len() as u16)];
+        let surrounding: Vec<Point> = surrounding
+            .into_iter()
+            .filter_map(|p| p)
+            .filter(|p| p.in(grid) == height)
+            .collect();
     }
 
     return vec![];
@@ -88,50 +92,54 @@ struct Point {
 }
 
 impl Point {
-    fn above(&self) -> Option<Point> {
-        if self.y <= 0 {
-            None
-        } else {
-            Some(Self{x: self.x, y: self.y - 1})
+    // count number of paths from this point
+    fn count_paths(&self, grid: &Vec<Vec<u32>>, currentValue: u32) -> usize {
+        // Base case if out of bounds
+        if !self.is_valid(grid) {
+            return 0;
         }
-    } 
 
-    fn below(&self, limit: u16) -> Option<Point> {
-        if self.y >= limit {
-            None
-        } else {
-            Some(Self{x: self.x, y: self.y + 1})
+        // Base case if value is not current + 1
+        if self.in(grid) != currentValue + 1:
+            return 0;
         }
-    } 
 
-    fn left(&self) -> Option<Point> {
-        if self.x <= 0 {
-            None
-        } else {
-            Some(Self{x: self.x - 1, y: self.y})
+        // Base case if path is finished
+        if self.in(grid) == 9 {
+            return 1;
         }
+
+        // Recuse on all neightbours
+        return self.neighbours.count_paths(grid, self.in(grid)).sum();
     }
     
-    fn right(&self, limit: u16) -> Option<Point> {
-        if self.x >= limit {
-            None
-        } else {
-            Some(Self{x: self.x + 1, y: self.y})
-        }
-    }  
+    fn is_valid(&self, grid: &Vec<Vec<u32>>) -> bool {
+        let w = grid.get(0).unwrap().len();
+        let h = grid.len();
+        return (self.x < 0 || self.y < 0 || self.x >= w || self.y >= h);
+    }
+
+    fn in(&self, grid: &Vec<Vec<u32>>) -> u32{
+        grid.get(self.y).unwrap(Vec<u32>).get(self.x).unwrap()
+    }
+
+    fn neighbours(&self, limit: usize) {
+        let surroundings = vec![
+            Point{}
+        ]
+    }
 }
 
-fn calculate_trailheads(grid: &Vec<Vec<u32>>) -> Vec<Trailhead> {
+fn find_starting_points(grid: &Vec<Vec<u32>>) -> Vec<Point> {
     
     // find the zeros
     return grid.iter().enumerate().flat_map(|(y, row)| {
         row.iter().enumerate().filter_map(move |(x, &n)| {
             if n == 0 {
                 // build a trailhead here
-                Some(Trailhead::new(
+                Some(Point(
                         x.try_into().unwrap(), 
-                        y.try_into().unwrap(),
-                        &grid))
+                        y.try_into().unwrap())
             } else {
                 None
             }
@@ -142,10 +150,10 @@ fn calculate_trailheads(grid: &Vec<Vec<u32>>) -> Vec<Trailhead> {
 
 fn main() { 
     let grid = parse_file(FILENAME);
-    let trailheads = calculate_trailheads(&grid);
-    let count: usize = trailheads
+    let startings_points = find_starting_points(&grid);
+    let count: usize = startings_points
         .iter()
-        .map(|t| t.trails.len())
+        .map(|p| p.count_paths(&grid, 0))
         .sum();
 
     println!("Count: {}", count);
