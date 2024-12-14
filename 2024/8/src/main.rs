@@ -3,11 +3,56 @@ use itertools::Itertools;
 
 const FILENAME: &str = "resources/input.txt";
 
+const EXTENSION: i32 = 200;
+
 #[derive(Debug, Clone, Hash, Eq, PartialEq)] 
 struct Antenna {
     x: i32,
     y: i32,
     freq: char
+}
+
+struct Map {
+    antennae: HashMap<char, Vec<Antenna>>,
+    width: i32,
+    height: i32
+}
+
+impl Map {
+
+    fn new(filename: &str) -> Map {
+        use std::fs;
+        let content: String = fs::read_to_string(filename).expect("Failed to read file");
+        
+        // iterate over the file 
+        let mut antennae: Vec<Antenna> = vec![];
+        for (y, line) in content.lines().enumerate() {
+            for (x, cha) in line.chars().enumerate() {
+                if cha != '.' {
+                    antennae.push(Antenna{x: x as i32, y: y as i32, freq: cha});
+                }
+            }
+        }
+        
+        let antennae = Map::group(antennae);
+        let width = content.lines().next().expect("").len().try_into().unwrap();
+        let height =  content.lines().count().try_into().unwrap();
+
+        return Map{antennae, width, height};
+    }
+
+    fn group(antennae: Vec<Antenna>) -> HashMap<char, Vec<Antenna>> {
+        let mut grouped_antennae: HashMap<char, Vec<Antenna>> = HashMap::new();
+        
+        for antenna in antennae {
+            grouped_antennae
+                .entry(antenna.freq)
+                .or_insert_with(Vec::new)
+                .push(antenna.clone());
+        }
+
+        return grouped_antennae;
+    }
 }
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
@@ -20,8 +65,7 @@ struct AntiNode {
 struct Pair {
     antenna1: Antenna,
     antenna2: Antenna,
-    antinode1: AntiNode, // pair is the owner of the antinodes
-    antinode2: AntiNode
+    antinodes: Vec<AntiNode>
 }
 
 impl Pair {
@@ -31,42 +75,22 @@ impl Pair {
         let dx = antenna1.x - antenna2.x;
         let dy = antenna1.y - antenna2.y;
 
-        let antinode1 = AntiNode{x: antenna1.x - dx, y: antenna1.y - dy};
-        let antinode2 = AntiNode{x: antenna2.x + dx, y: antenna2.y + dy};
-
-        return Pair{antenna1, antenna2, antinode1, antinode2};
-    }
-}
-
-fn parse_file(filename: &str) -> Vec<Antenna> {
-    use std::fs;
-    let content: String = fs::read_to_string(filename).expect("Failed to read file");
-    
-    // iterate over the file 
-    let mut antennae: Vec<Antenna> = vec![];
-    for (y, line) in content.lines().enumerate() {
-        for (x, cha) in line.chars().enumerate() {
-            if cha != '.' {
-                antennae.push(Antenna{x: x as i32, y: y as i32, freq: cha});
-            }
+        let mut antinodes: Vec<AntiNode> = Vec::new();
+        for i in 0..EXTENSION {
+            antinodes.push(AntiNode{x: antenna1.x + (i * dx), y: antenna1.y + (i * dy)});
+            antinodes.push(AntiNode{x: antenna2.x - (i * dx), y: antenna2.y - (i * dy)});
         }
-    }
 
-    return antennae;
+        return Pair{antenna1, antenna2, antinodes};
+    }
 }
 
-fn group_and_pair(antennae: Vec<Antenna>) -> HashSet<Pair> {
-    let mut grouped_antennae: HashMap<char, Vec<Antenna>> = HashMap::new();
+fn main() {
+    let map = Map::new(FILENAME);
     
-    for antenna in antennae {
-        grouped_antennae
-            .entry(antenna.freq)
-            .or_insert_with(Vec::new)
-            .push(antenna.clone());
-    }
-
+    // create pair combinations for each group
     let mut antennae_pairings: HashSet<Pair> = HashSet::new();
-    for (_key, group) in &grouped_antennae {
+    for (_key, group) in map.antennae {
         let group_pairings: HashSet<Pair> = group
             .iter()
             .combinations(2)
@@ -76,23 +100,17 @@ fn group_and_pair(antennae: Vec<Antenna>) -> HashSet<Pair> {
             .collect();
         antennae_pairings.extend(group_pairings);
     }
- 
-    return antennae_pairings;
-}
-
-fn main() {
-    let antennae = parse_file(FILENAME);
-    
-    // create pair combinations for each group
-    let antennae_pairings = group_and_pair(antennae);
 
     // extract the antinates from all pairs
     let mut antinodes = HashSet::new();
     for pair in antennae_pairings {
-        antinodes.insert(pair.antinode1.clone());
-        antinodes.insert(pair.antinode2.clone());
+        for antinode in pair.antinodes {
+            if (antinode.x < map.width) && (antinode.x >= 0) && (antinode.y < map.height) && (antinode.y >= 0) {
+                antinodes.insert(antinode);
+            }
+        }
     }
-
+    
     // for each pair, calculate antinodes andd add
     println!("{:?}", antinodes.len());
 }
