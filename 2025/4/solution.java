@@ -36,6 +36,5 @@ void main() throws IOException {
         total += localTotal;
     } while (localTotal > 0);
     
-    
     System.out.println(total);
 }
